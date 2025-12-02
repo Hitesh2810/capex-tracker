@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capex Tracker 25-26 Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.3s ease; }
+        .clickable-card { cursor: pointer; }
+        .clickable-card:active { transform: scale(0.98); }
+        .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom Scrollbar for Dropdown */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Login Animation */
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in-up { animation: slideInUp 0.5s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Login Screen (Initially shown) -->
+    <div id="loginScreen" class="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20 slide-in-up">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/20 rounded-2xl mb-4">
+                    <i data-lucide="bar-chart-3" class="w-8 h-8 text-emerald-400"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">ISCM Capex Tracker</h1>
+                <p class="text-slate-300">FY 2025-26 Dashboard</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-slate-300 mb-2">Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="text" id="username" required
+                               class="pl-10 w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-all"
+                               placeholder="Enter your username">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="password" id="password" required
+                               class="pl-10 w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-all"
+                               placeholder="Enter your password">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <i data-lucide="eye" id="passwordEyeIcon" class="w-5 h-5 text-slate-400 hover:text-slate-300"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="rememberMe" 
+                               class="w-4 h-4 text-emerald-600 bg-white/10 border-white/20 rounded focus:ring-emerald-500 focus:ring-2">
+                        <label for="rememberMe" class="ml-2 text-sm text-slate-300">Remember me</label>
+                    </div>
+                    <button type="button" onclick="showForgotPassword()" class="text-sm text-emerald-400 hover:text-emerald-300">
+                        Forgot password?
+                    </button>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    Sign In
+                </button>
+                
+                <div class="text-center pt-4 border-t border-white/10">
+                    <p class="text-sm text-slate-400">Demo Accounts:</p>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Admin: admin/1234 | ISCM: iscm/iscm123 | Mfg: goldmfg/mfg123
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800">Reset Password</h3>
+                <button onclick="hideForgotPassword()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="resetUsername" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                    <input type="text" id="resetUsername"
+                           class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                           placeholder="Enter your username">
+                </div>
+                
+                <div>
+                    <label for="resetEmail" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="resetEmail"
+                           class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                           placeholder="Enter your registered email">
+                </div>
+                
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                    <input type="password" id="newPassword"
+                           class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                           placeholder="Enter new password">
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="hideForgotPassword()" 
+                        class="px-4 py-2 text-slate-600 hover:text-slate-800 font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="resetPassword()" 
+                        class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors">
+                    Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard (Initially hidden) -->
+    <div id="dashboardContainer" class="hidden">
+        <div class="flex h-screen overflow-hidden">
+            
+            <!-- Sidebar -->
+            <aside class="w-64 bg-slate-900 text-white hidden md:flex flex-col shadow-xl">
+                <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+                    <i data-lucide="bar-chart-3" class="text-emerald-400"></i>
+                    <h1 class="text-xl font-bold tracking-tight">ISCM Capex</h1>
+                </div>
+                
+                <nav class="flex-1 p-4 space-y-2">
+                    <a href="#" class="flex items-center gap-3 px-4 py-3 bg-emerald-600 rounded-lg text-white shadow-md">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="list-todo" class="w-5 h-5"></i>
+                        <span>Projects</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                        <span>Reports</span>
+                    </a>
+                </nav>
+
+                <div class="p-4 border-t border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-white" id="userInitials">U</div>
+                        <div>
+                            <p class="text-sm font-medium" id="userDisplayName">User</p>
+                            <p class="text-xs text-slate-500" id="userDepartment">Department</p>
+                            <p class="text-xs text-emerald-400 font-medium" id="userRole">Role</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()" class="mt-4 w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        Sign Out
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto relative">
+                <!-- Header -->
+                <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+                    <div class="px-8 py-4 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">Overview</h2>
+                            <p class="text-slate-500 text-sm">Track Capital Expenditure performance and utilization</p>
+                            <p class="text-xs text-emerald-600 font-medium mt-1" id="accessInfo">
+                                <i data-lucide="shield" class="w-3 h-3 inline mr-1"></i>
+                                Department Access: <span id="currentDeptAccess">All Departments</span>
+                            </p>
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <!-- Add New Entry Button (Only for Admin and some departments) -->
+                            <button id="addEntryBtn" onclick="document.getElementById('addEntryModal').classList.remove('hidden')" 
+                                    class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                Add New Entry
+                            </button>
+                            
+                            <button id="uploadBtn" onclick="document.getElementById('uploadModal').classList.remove('hidden')" 
+                                    class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                                Update from Excel
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="p-8 space-y-8">
+                    
+                    <!-- Filters Section (New Grid Layout) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                            <i data-lucide="filter" class="w-4 h-4"></i> Filters
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            
+                            <!-- 1. Department Filter -->
+                            <div>
+                                <label for="deptFilter" class="block text-xs font-medium text-slate-500 mb-1">Department</label>
+                                <select id="deptFilter" onchange="filterDashboard()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
+                                    <option value="All">All Departments</option>
+                                </select>
+                            </div>
+
+                            <!-- 2. Function Filter -->
+                            <div>
+                                <label for="funcFilter" class="block text-xs font-medium text-slate-500 mb-1">Function</label>
+                                <select id="funcFilter" onchange="filterDashboard()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
+                                    <option value="All">All Functions</option>
+                                </select>
+                            </div>
+
+                            <!-- 3. Cost Centre Filter -->
+                            <div>
+                                <label for="ccFilter" class="block text-xs font-medium text-slate-500 mb-1">Cost Centre</label>
+                                <select id="ccFilter" onchange="filterDashboard()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
+                                    <option value="All">All Cost Centres</option>
+                                </select>
+                            </div>
+
+                            <!-- 4. User Filter (Searchable Dropdown) -->
+                            <div class="relative" id="userFilterContainer">
+                                <label for="userSearchInput" class="block text-xs font-medium text-slate-500 mb-1">User Name</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
+                                    </div>
+                                    <input type="text" id="userSearchInput" oninput="filterDashboard(true)" onfocus="toggleUserDropdown(true)" 
+                                           placeholder="Select or type user..." autocomplete="off"
+                                           class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 pr-8 p-2.5">
+                                    
+                                    <!-- Chevron Icon for Dropdown -->
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" onclick="toggleUserDropdown()">
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 hover:text-slate-600"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Custom Dropdown List -->
+                                <div id="userDropdownList" class="hidden absolute z-20 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1 custom-scrollbar">
+                                    <!-- Options injected by JS -->
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        
+                        <!-- 1. Total Indent Received (Clickable) -->
+                        <div onclick="renderDetailTable('indent')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 card-hover clickable-card group relative">
+                            <div class="absolute top-2 right-2 text-xs text-slate-300 group-hover:text-blue-400 transition-colors">
+                                <i data-lucide="mouse-pointer-2" class="w-4 h-4"></i>
+                            </div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-slate-500 text-sm font-medium">Total Indent Received</p>
+                                    <h3 class="text-3xl font-bold text-slate-800 mt-1" id="kpi-indent-count">468</h3>
+                                </div>
+                                <div class="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+                                    <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 pt-2 border-t border-slate-50">
+                                <span class="text-sm font-medium text-slate-600">Value:</span>
+                                <span class="text-lg font-bold text-blue-600" id="kpi-indent-val">₹31.5 Cr</span>
+                            </div>
+                            <div class="mt-2 text-center text-xs text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Click to view details</div>
+                        </div>
+
+                        <!-- 2. PO Released -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 card-hover group">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-slate-500 text-sm font-medium">PO Released</p>
+                                    <h3 class="text-3xl font-bold text-slate-800 mt-1" id="kpi-po-count">394</h3>
+                                </div>
+                                <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-100 transition-colors">
+                                    <i data-lucide="file-check-2" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 pt-2 border-t border-slate-50">
+                                <span class="text-sm font-medium text-slate-600">Value:</span>
+                                <span class="text-lg font-bold text-emerald-600" id="kpi-po-val">₹25.9 Cr</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Material Received -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 card-hover group">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-slate-500 text-sm font-medium">Material Received</p>
+                                    <h3 class="text-3xl font-bold text-slate-800 mt-1" id="kpi-mat-count">342</h3>
+                                </div>
+                                <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                                    <i data-lucide="package-check" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 pt-2 border-t border-slate-50">
+                                <span class="text-sm font-medium text-slate-600">Value:</span>
+                                <span class="text-lg font-bold text-indigo-600" id="kpi-mat-val">₹19.8 Cr</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. WIP (Indent - PO) -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 card-hover group">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-slate-500 text-sm font-medium">WIP (Indent - PO)</p>
+                                    <h3 class="text-3xl font-bold text-slate-800 mt-1" id="kpi-wip-count">74</h3>
+                                </div>
+                                <div class="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-100 transition-colors">
+                                    <i data-lucide="hourglass" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 pt-2 border-t border-slate-50">
+                                <span class="text-sm font-medium text-slate-600">Value:</span>
+                                <span class="text-lg font-bold text-amber-600" id="kpi-wip-val">₹5.6 Cr</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Detail Table Container (Hidden by default) -->
+                    <div id="detailSection" class="hidden bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden animate-fade-in-down">
+                        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 class="text-lg font-bold text-slate-800" id="detailTitle">Detailed List</h3>
+                            <button onclick="document.getElementById('detailSection').classList.add('hidden')" class="text-slate-400 hover:text-red-500">
+                                <i data-lucide="x-circle" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto max-h-96">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 text-slate-600 font-medium sticky top-0">
+                                    <tr>
+                                        <th class="px-6 py-3">Sl.No</th>
+                                        <th class="px-6 py-3">Description</th>
+                                        <th class="px-6 py-3">Dept / Function</th>
+                                        <th class="px-6 py-3">Cost Centre</th>
+                                        <th class="px-6 py-3">User</th>
+                                        <th class="px-6 py-3 text-right">MPR Value (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100" id="detailTableBody">
+                                    <!-- Rows injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section 1 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Main Trend Chart -->
+                        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4">Monthly Financial Trend (Cr)</h3>
+                            <div class="h-80">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Department Donut -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4">Utilization by Dept</h3>
+                            <div class="h-64 flex justify-center">
+                                <canvas id="deptChart"></canvas>
+                            </div>
+                            <div class="mt-4 space-y-2" id="deptLegend">
+                                <!-- Legend items injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Department Breakdown & Projects -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        
+                        <!-- Department Table -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div class="p-6 border-b border-slate-100">
+                                <h3 class="text-lg font-bold text-slate-800">Department Wise Budget vs Actuals</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-500 font-medium">
+                                        <tr>
+                                            <th class="px-6 py-3">Department</th>
+                                            <th class="px-6 py-3 text-right">Budget (Cr)</th>
+                                            <th class="px-6 py-3 text-right">Utilized (Cr)</th>
+                                            <th class="px-6 py-3 text-right">Balance (Cr)</th>
+                                            <th class="px-6 py-3 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100" id="deptTableBody">
+                                        <!-- Rows injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Top Projects Status -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-slate-800">Major Projects Status</h3>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">Live</span>
+                            </div>
+                            <div class="p-6 space-y-4" id="projectList">
+                                <!-- Projects injected by JS -->
+                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                    <div>
+                                        <p class="font-semibold text-slate-800">CITE Layout Completion</p>
+                                        <p class="text-xs text-slate-500">New Mfg Building</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-slate-700 text-sm">₹0.98 Cr Used</p>
+                                        <span class="text-xs font-bold text-emerald-600">Completed</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add New Entry Modal -->
+    <div id="addEntryModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl">
+            <div class="flex justify-between items-center p-6 border-b border-slate-100">
+                <h3 class="text-xl font-bold text-slate-800">Add New Capex Entry</h3>
+                <button onclick="document.getElementById('addEntryModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <form id="newEntryForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-slate-700 mb-1">Description *</label>
+                            <input type="text" id="description" required
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                   placeholder="Enter item description">
+                        </div>
+                        
+                        <div>
+                            <label for="user" class="block text-sm font-medium text-slate-700 mb-1">User Name *</label>
+                            <input type="text" id="user" required
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                   placeholder="Enter user name">
+                        </div>
+                        
+                        <div>
+                            <label for="dept" class="block text-sm font-medium text-slate-700 mb-1">Department *</label>
+                            <select id="dept" required
+                                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <option value="">Select Department</option>
+                                <option value="ISCM">ISCM</option>
+                                <option value="Gold Jew Mfg">Gold Jew Mfg</option>
+                                <option value="P & M">P & M</option>
+                                <option value="CITE">CITE</option>
+                                <option value="Opex">Opex</option>
+                                <option value="Admin">Admin</option>
+                                <option value="QA">QA</option>
+                                <option value="HR">HR</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="function" class="block text-sm font-medium text-slate-700 mb-1">Function</label>
+                            <select id="function"
+                                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <option value="">Select Function</option>
+                                <option value="Manufacturing">Manufacturing</option>
+                                <option value="Infrastructure">Infrastructure</option>
+                                <option value="IT">IT</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Quality">Quality</option>
+                                <option value="Maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="costCentre" class="block text-sm font-medium text-slate-700 mb-1">Cost Centre</label>
+                            <input type="text" id="costCentre"
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                   placeholder="e.g., CC001">
+                        </div>
+                        
+                        <div>
+                            <label for="mprValue" class="block text-sm font-medium text-slate-700 mb-1">MPR Value (₹) *</label>
+                            <input type="number" id="mprValue" required step="0.01" min="0"
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                   placeholder="Enter amount">
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t border-slate-100">
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="isPoReleased" 
+                                       class="w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500">
+                                <label for="isPoReleased" class="ml-2 text-sm text-slate-700">PO Released</label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" id="isMaterialReceived"
+                                       class="w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500">
+                                <label for="isMaterialReceived" class="ml-2 text-sm text-slate-700">Material Received</label>
+                            </div>
+                        </div>
+                        
+                        <div id="poValueSection" class="hidden">
+                            <label for="poValue" class="block text-sm font-medium text-slate-700 mb-1">PO Value (₹)</label>
+                            <input type="number" id="poValue" step="0.01" min="0"
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                   placeholder="Enter PO value">
+                        </div>
+                        
+                        <div id="materialDateSection" class="hidden">
+                            <label for="materialDate" class="block text-sm font-medium text-slate-700 mb-1">Material Receipt Date</label>
+                            <input type="date" id="materialDate"
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="remarks" class="block text-sm font-medium text-slate-700 mb-1">Remarks</label>
+                        <textarea id="remarks" rows="2"
+                                  class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                  placeholder="Any additional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="flex justify-between items-center p-6 border-t border-slate-100">
+                <button type="button" onclick="document.getElementById('addEntryModal').classList.add('hidden')" 
+                        class="px-4 py-2 text-slate-600 hover:text-slate-800 font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="saveEntry()" 
+                        class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    Save Entry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800">Update Dashboard Data</h3>
+                <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- ISCM Tracker Input (New) -->
+                <div class="p-4 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <label class="block cursor-pointer">
+                        <span class="block text-sm font-medium text-slate-700 mb-1">Upload "Capex Tracker 25-26" (ISCM.xlsx)</span>
+                        <p class="text-xs text-slate-400 mb-2">Used for Indent, PO, Material, Function, Cost Centre, User</p>
+                        <input type="file" id="fileISCM" accept=".xlsx,.xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    </label>
+                </div>
+
+                <div class="p-4 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <label class="block cursor-pointer">
+                        <span class="block text-sm font-medium text-slate-700 mb-1">Upload "Pivot.xlsx" (Dept Budget)</span>
+                        <input type="file" id="filePivot" accept=".xlsx,.xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"/>
+                    </label>
+                </div>
+                
+                <div class="p-4 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <label class="block cursor-pointer">
+                        <span class="block text-sm font-medium text-slate-700 mb-1">Upload "Summary.xlsx" (Trends)</span>
+                        <input type="file" id="fileSummary" accept=".xlsx,.xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="processFiles()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm">
+                    Process & Update
+                </button>
+            </div>
+            <p class="text-xs text-slate-400 mt-4 text-center">Note: Files are processed locally in your browser. No data is sent to any server.</p>
+        </div>
+    </div>
+
+    <script>
+        // ==================== USER MANAGEMENT SYSTEM ====================
+        
+        // User database with department-based access
+        const users = {
+            // Admin user (full access)
+            'admin': {
+                password: '1234',
+                name: 'Admin User',
+                department: 'Admin',
+                role: 'Administrator',
+                access: 'all', // Can see all departments
+                canAddEntries: true,
+                canUploadExcel: true
+            },
+            // ISCM Department
+            'iscm': {
+                password: 'iscm123',
+                name: 'ISCM Manager',
+                department: 'ISCM',
+                role: 'Department Head',
+                access: ['ISCM'], // Can only see ISCM department
+                canAddEntries: true,
+                canUploadExcel: false
+            },
+            // Gold Jew Mfg Department
+            'goldmfg': {
+                password: 'mfg123',
+                name: 'Mfg Supervisor',
+                department: 'Gold Jew Mfg',
+                role: 'Supervisor',
+                access: ['Gold Jew Mfg'], // Can only see Manufacturing department
+                canAddEntries: true,
+                canUploadExcel: false
+            },
+            // P & M Department
+            'pm': {
+                password: 'pm123',
+                name: 'P&M Officer',
+                department: 'P & M',
+                role: 'Officer',
+                access: ['P & M'], // Can only see P&M department
+                canAddEntries: true,
+                canUploadExcel: false
+            },
+            // CITE Department
+            'cite': {
+                password: 'cite123',
+                name: 'CITE Engineer',
+                department: 'CITE',
+                role: 'Engineer',
+                access: ['CITE'], // Can only see CITE department
+                canAddEntries: true,
+                canUploadExcel: false
+            },
+            // QA Department (View only)
+            'qa': {
+                password: 'qa123',
+                name: 'QA Inspector',
+                department: 'QA',
+                role: 'Inspector',
+                access: ['QA'], // Can only see QA department
+                canAddEntries: false,
+                canUploadExcel: false
+            },
+            // HR Department (View only)
+            'hr': {
+                password: 'hr123',
+                name: 'HR Executive',
+                department: 'HR',
+                role: 'Executive',
+                access: ['HR'], // Can only see HR department
+                canAddEntries: false,
+                canUploadExcel: false
+            },
+            // Opex Department
+            'opex': {
+                password: 'opex123',
+                name: 'Opex Manager',
+                department: 'Opex',
+                role: 'Manager',
+                access: ['Opex'], // Can only see Opex department
+                canAddEntries: true,
+                canUploadExcel: false
+            }
+        };
+
+        // Current logged in user
+        let currentUser = null;
+
+        // ==================== LOGIN SYSTEM FUNCTIONS ====================
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('passwordEyeIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        function showForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        }
+
+        function hideForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.add('hidden');
+        }
+
+        function resetPassword() {
+            const username = document.getElementById('resetUsername').value;
+            const email = document.getElementById('resetEmail').value;
+            const newPassword = document.getElementById('newPassword').value;
+            
+            if (!username || !email || !newPassword) {
+                showNotification('Please fill all fields', 'error');
+                return;
+            }
+            
+            if (users[username]) {
+                // In a real system, you would send this to a server
+                // For demo, we'll just show a success message
+                showNotification('Password reset instructions sent to your email', 'success');
+                hideForgotPassword();
+                document.getElementById('resetUsername').value = '';
+                document.getElementById('resetEmail').value = '';
+                document.getElementById('newPassword').value = '';
+            } else {
+                showNotification('Username not found', 'error');
+            }
+        }
+
+        function handleLogin(event) {
+            if (event) event.preventDefault();
+            
+            const username = document.getElementById('username').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            // Validate credentials
+            if (users[username] && users[username].password === password) {
+                // Login successful
+                currentUser = {
+                    username: username,
+                    ...users[username]
+                };
+                
+                // Store login info if remember me is checked
+                if (rememberMe) {
+                    localStorage.setItem('rememberedUser', username);
+                } else {
+                    localStorage.removeItem('rememberedUser');
+                }
+                
+                // Show dashboard
+                showDashboard();
+                
+                // Show welcome notification
+                showNotification(`Welcome, ${currentUser.name}!`, 'success');
+            } else {
+                // Login failed
+                showNotification('Invalid username or password', 'error');
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function showDashboard() {
+            // Hide login screen
+            document.getElementById('loginScreen').classList.add('hidden');
+            
+            // Show dashboard
+            document.getElementById('dashboardContainer').classList.remove('hidden');
+            
+            // Update user info in sidebar
+            updateUserDisplay();
+            
+            // Apply department restrictions
+            applyDepartmentRestrictions();
+            
+            // Initialize dashboard
+            initDashboard();
+        }
+
+        function updateUserDisplay() {
+            if (!currentUser) return;
+            
+            // Update sidebar user info
+            document.getElementById('userInitials').textContent = currentUser.name.charAt(0);
+            document.getElementById('userDisplayName').textContent = currentUser.name;
+            document.getElementById('userDepartment').textContent = currentUser.department;
+            document.getElementById('userRole').textContent = currentUser.role;
+            
+            // Update access info in header
+            const accessInfo = document.getElementById('accessInfo');
+            const currentDeptAccess = document.getElementById('currentDeptAccess');
+            
+            if (currentUser.access === 'all') {
+                currentDeptAccess.textContent = 'All Departments (Admin Access)';
+            } else if (Array.isArray(currentUser.access)) {
+                currentDeptAccess.textContent = currentUser.access.join(', ');
+            }
+        }
+
+        function applyDepartmentRestrictions() {
+            if (!currentUser) return;
+            
+            const deptFilter = document.getElementById('deptFilter');
+            const addEntryBtn = document.getElementById('addEntryBtn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            // Clear existing options
+            deptFilter.innerHTML = '';
+            
+            // Add options based on user access
+            if (currentUser.access === 'all') {
+                // Admin can see all departments
+                deptFilter.innerHTML = '<option value="All">All Departments</option>';
+                
+                // Add all department options
+                const allDepartments = ['ISCM', 'Gold Jew Mfg', 'P & M', 'CITE', 'Opex', 'Admin', 'QA', 'HR'];
+                allDepartments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    deptFilter.appendChild(option);
+                });
+                
+                // Enable all buttons for admin
+                addEntryBtn.disabled = false;
+                uploadBtn.disabled = false;
+            } else if (Array.isArray(currentUser.access)) {
+                // Department users can only see their department(s)
+                if (currentUser.access.length === 1) {
+                    // Single department access
+                    deptFilter.innerHTML = `<option value="${currentUser.access[0]}">${currentUser.access[0]}</option>`;
+                    deptFilter.disabled = true; // Disable dropdown for single department
+                } else {
+                    // Multiple department access
+                    deptFilter.innerHTML = '<option value="All">All Accessible Departments</option>';
+                    currentUser.access.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept;
+                        option.textContent = dept;
+                        deptFilter.appendChild(option);
+                    });
+                }
+                
+                // Set button permissions
+                addEntryBtn.disabled = !currentUser.canAddEntries;
+                uploadBtn.disabled = !currentUser.canUploadExcel;
+                
+                // Apply visual feedback for disabled buttons
+                if (!currentUser.canAddEntries) {
+                    addEntryBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                    addEntryBtn.classList.add('bg-slate-400', 'cursor-not-allowed');
+                }
+                
+                if (!currentUser.canUploadExcel) {
+                    uploadBtn.classList.remove('bg-slate-800', 'hover:bg-slate-700');
+                    uploadBtn.classList.add('bg-slate-400', 'cursor-not-allowed');
+                }
+            }
+            
+            // Trigger filter to apply restrictions immediately
+            setTimeout(() => filterDashboard(), 100);
+        }
+
+        function logout() {
+            currentUser = null;
+            
+            // Hide dashboard
+            document.getElementById('dashboardContainer').classList.add('hidden');
+            
+            // Show login screen
+            document.getElementById('loginScreen').classList.remove('hidden');
+            
+            // Reset login form
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('rememberMe').checked = false;
+            
+            // Reset dashboard state
+            rawTrackerData = [];
+            
+            showNotification('Logged out successfully', 'info');
+        }
+
+        function showNotification(message, type = 'info') {
+            // Remove existing notification
+            const existing = document.getElementById('globalNotification');
+            if (existing) existing.remove();
+            
+            const colors = {
+                success: 'bg-emerald-100 border-emerald-200 text-emerald-800',
+                error: 'bg-red-100 border-red-200 text-red-800',
+                info: 'bg-blue-100 border-blue-200 text-blue-800',
+                warning: 'bg-amber-100 border-amber-200 text-amber-800'
+            };
+            
+            const icons = {
+                success: 'check-circle',
+                error: 'alert-circle',
+                info: 'info',
+                warning: 'alert-triangle'
+            };
+            
+            const notification = document.createElement('div');
+            notification.id = 'globalNotification';
+            notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border ${colors[type]} shadow-lg flex items-center gap-3 animate-fade-in-down`;
+            notification.innerHTML = `
+                <i data-lucide="${icons[type]}" class="w-5 h-5"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentElement.remove()" class="ml-4 text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(notification);
+            lucide.createIcons();
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // ==================== MODIFIED DASHBOARD FUNCTIONS ====================
+        
+        // --- 1. INITIAL DATA ---
+        let dashboardData = {
+            stats: {
+                indent: { val: 31.5, count: 468 },
+                po: { val: 25.9, count: 394 },
+                material: { val: 19.8, count: 342 },
+                wip: { val: 5.6, count: 74 } 
+            },
+            trends: {
+                labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+                mpr: [2.24, 4.61, 1.42, 0.67, 4.68, 0],
+                po: [0.02, 1.10, 10.16, 2.44, 1.2, 0],
+                bill: [3.45, 3.07, 1.67, 1.58, 0, 0]
+            },
+            departments: [
+                { name: "Gold Jew Mfg", budget: 9.42, utilized: 9.75, balance: -0.33 },
+                { name: "ISCM", budget: 6.95, utilized: 0.91, balance: 6.03 },
+                { name: "P & M", budget: 3.60, utilized: 1.20, balance: 2.40 },
+                { name: "CITE", budget: 1.41, utilized: 1.40, balance: 0.01 },
+                { name: "Opex", budget: 0.55, utilized: 0.54, balance: 0.01 },
+                { name: "Admin", budget: 0.40, utilized: 0.33, balance: 0.07 }
+            ],
+            projects: [
+                { name: "CITE Layout Completion @ New Mfg", used: 0.98, status: "Completed" },
+                { name: "HVC Mumbai - HD Deployment", used: 0.75, status: "WIP" },
+                { name: "QA Layout @ New Mfg 2nd Floor", used: 0.37, status: "Completed" },
+                { name: "Innovation Centre Conversion", used: 0.23, status: "Completed" },
+                { name: "Street Light Revamping", used: 0.23, status: "WIP" }
+            ]
+        };
+
+        // GLOBAL: Store raw rows for filtering
+        let rawTrackerData = []; 
+
+        // --- 2. CHART INSTANCES ---
+        let trendChartInst = null;
+        let deptChartInst = null;
+
+        // --- 3. RENDER FUNCTIONS ---
+        function initDashboard() {
+            lucide.createIcons();
+            updateKPIs();
+            renderTrendChart();
+            renderDeptChart();
+            renderDeptTable();
+            renderProjectList();
+            setupUserDropdownEvents();
+            setupFormListeners();
+            
+            // Load any previously saved entries from localStorage
+            loadSavedEntries();
+            
+            // Check for remembered user
+            checkRememberedUser();
+        }
+
+        function checkRememberedUser() {
+            const rememberedUser = localStorage.getItem('rememberedUser');
+            if (rememberedUser && users[rememberedUser]) {
+                document.getElementById('username').value = rememberedUser;
+                document.getElementById('rememberMe').checked = true;
+            }
+        }
+
+        // Modified filterDashboard to respect department restrictions
+        function filterDashboard(isUserTyping = false) {
+            if (!currentUser) return;
+            
+            const selDept = document.getElementById('deptFilter').value;
+            const selFunc = document.getElementById('funcFilter').value;
+            const selCC = document.getElementById('ccFilter').value;
+            const userInputValue = document.getElementById('userSearchInput').value.trim();
+            const selUserLower = userInputValue.toLowerCase();
+            
+            if (rawTrackerData.length === 0 && (selDept !== 'All' || selFunc !== 'All' || selCC !== 'All' || userInputValue !== '')) {
+                if (!isUserTyping) showNotification("Please upload the ISCM Excel file first or add new entries.", "info");
+                return;
+            }
+
+            // Apply department restriction
+            let allowedDepartments = [];
+            if (currentUser.access === 'all') {
+                // Admin can see all departments
+                allowedDepartments = 'all';
+            } else if (Array.isArray(currentUser.access)) {
+                allowedDepartments = currentUser.access;
+            }
+
+            // 1. Calculate Valid Options for Dropdowns based on current selections
+            let validDepts = new Set();
+            let validFuncs = new Set();
+            let validCCs = new Set();
+            let validUsers = new Set();
+
+            rawTrackerData.forEach(row => {
+                let rDept = (row.dept || "").toString().trim();
+                let rFunc = (row.function || "").toString().trim();
+                let rCC = (row.costCentre || "").toString().trim();
+                let rUser = (row.user || "").toString().trim();
+                let rUserLower = rUser.toLowerCase();
+
+                // Check if row is within user's allowed departments
+                let isDeptAllowed = allowedDepartments === 'all' || allowedDepartments.includes(rDept);
+                if (!isDeptAllowed) return;
+
+                // Logic: A row is valid for a filter if it matches ALL OTHER filters
+                
+                // For Dept Dropdown:
+                let matchForDept = (selFunc === 'All' || rFunc === selFunc) && 
+                                   (selCC === 'All' || rCC === selCC) &&
+                                   (userInputValue === '' || rUserLower.includes(selUserLower));
+                if (matchForDept && rDept) validDepts.add(rDept);
+
+                // For Func Dropdown:
+                let matchForFunc = (selDept === 'All' || rDept === selDept) && 
+                                   (selCC === 'All' || rCC === selCC) &&
+                                   (userInputValue === '' || rUserLower.includes(selUserLower));
+                if (matchForFunc && rFunc) validFuncs.add(rFunc);
+
+                // For CC Dropdown:
+                let matchForCC = (selDept === 'All' || rDept === selDept) && 
+                                 (selFunc === 'All' || rFunc === selFunc) &&
+                                 (userInputValue === '' || rUserLower.includes(selUserLower));
+                if (matchForCC && rCC) validCCs.add(rCC);
+
+                // For User Dropdown:
+                // Special case: When typing, we filter the list based on type text too
+                let matchForUser = (selDept === 'All' || rDept === selDept) && 
+                                   (selFunc === 'All' || rFunc === selFunc) &&
+                                   (selCC === 'All' || rCC === selCC);
+                
+                // Also filter the user dropdown list itself if typing
+                if (matchForUser && rUser && (userInputValue === '' || rUserLower.includes(selUserLower))) {
+                    validUsers.add(rUser);
+                }
+            });
+
+            // 2. Update Dropdown Options (Preserving selection if valid)
+            if (!isUserTyping) {
+                // Only update if user has access to multiple departments
+                if (currentUser.access !== 'all' && Array.isArray(currentUser.access) && currentUser.access.length > 1) {
+                    updateSelectOptions('deptFilter', validDepts, selDept, "Departments");
+                }
+                updateSelectOptions('funcFilter', validFuncs, selFunc, "Functions");
+                updateSelectOptions('ccFilter', validCCs, selCC, "Cost Centres");
+            }
+            // Always update User Dropdown List
+            updateUserDropdownList(validUsers);
+
+            // 3. Calculate Stats based on refreshed selections
+            let indentCount = 0, indentVal = 0;
+            let poCount = 0, poVal = 0;
+            let matCount = 0, matVal = 0;
+
+            // Re-read values (in case they reset)
+            const finalDept = document.getElementById('deptFilter').value;
+            const finalFunc = document.getElementById('funcFilter').value;
+            const finalCC = document.getElementById('ccFilter').value;
+
+            rawTrackerData.forEach(row => {
+                let rDept = (row.dept || "").toString().trim();
+                let rFunc = (row.function || "").toString().trim();
+                let rCC = (row.costCentre || "").toString().trim();
+                let rUser = (row.user || "").toString().trim().toLowerCase();
+
+                // Check department access
+                let isDeptAllowed = allowedDepartments === 'all' || allowedDepartments.includes(rDept);
+                if (!isDeptAllowed) return;
+
+                let matchDept = (finalDept === 'All') || (rDept === finalDept);
+                let matchFunc = (finalFunc === 'All') || (rFunc === finalFunc);
+                let matchCC = (finalCC === 'All') || (rCC === finalCC);
+                // Partial match for User Input
+                let matchUser = (userInputValue === '') || rUser.includes(selUserLower);
+
+                if (matchDept && matchFunc && matchCC && matchUser) {
+                    if (row.indentVal > 0) {
+                        indentCount++;
+                        indentVal += row.indentVal;
+                    }
+                    if (row.isPoReleased) {
+                        poCount++;
+                        poVal += row.poVal;
+                    }
+                    if (row.isMatReceived) {
+                        matCount++;
+                        matVal += row.matVal;
+                    }
+                }
+            });
+
+            // Update Global Stats
+            dashboardData.stats.indent.count = indentCount;
+            dashboardData.stats.indent.val = indentVal / 10000000;
+            
+            dashboardData.stats.po.count = poCount;
+            dashboardData.stats.po.val = poVal / 10000000;
+
+            dashboardData.stats.material.count = matCount;
+            dashboardData.stats.material.val = matVal / 10000000;
+
+            dashboardData.stats.wip.count = Math.max(0, indentCount - poCount);
+            dashboardData.stats.wip.val = Math.max(0, (indentVal - poVal) / 10000000);
+
+            // Hide detail table on filter change
+            document.getElementById('detailSection').classList.add('hidden');
+            
+            updateKPIs();
+        }
+
+        // Modified renderDetailTable to respect department restrictions
+        function renderDetailTable(type) {
+            if(type !== 'indent') return;
+
+            const selDept = document.getElementById('deptFilter').value;
+            const selFunc = document.getElementById('funcFilter').value;
+            const selCC = document.getElementById('ccFilter').value;
+            const userInputValue = document.getElementById('userSearchInput').value.toLowerCase();
+
+            const tableBody = document.getElementById('detailTableBody');
+            tableBody.innerHTML = '';
+
+            if (rawTrackerData.length === 0) {
+                showNotification("No data available. Please upload the ISCM file or add new entries.", "info");
+                return;
+            }
+
+            // Apply department restriction
+            let allowedDepartments = [];
+            if (currentUser.access === 'all') {
+                allowedDepartments = 'all';
+            } else if (Array.isArray(currentUser.access)) {
+                allowedDepartments = currentUser.access;
+            }
+
+            const filteredRows = rawTrackerData.filter(row => {
+                let rDept = (row.dept || "").toString().trim();
+                let rFunc = (row.function || "").toString().trim();
+                let rCC = (row.costCentre || "").toString().trim();
+                let rUser = (row.user || "").toString().trim().toLowerCase();
+
+                // Check department access
+                let isDeptAllowed = allowedDepartments === 'all' || allowedDepartments.includes(rDept);
+                if (!isDeptAllowed) return false;
+
+                let matchDept = (selDept === 'All') || (rDept === selDept);
+                let matchFunc = (selFunc === 'All') || (rFunc === selFunc);
+                let matchCC = (selCC === 'All') || (rCC === selCC);
+                let matchUser = (userInputValue === '') || rUser.includes(userInputValue);
+
+                return matchDept && matchFunc && matchCC && matchUser && (row.indentVal > 0);
+            });
+
+            document.getElementById('detailTitle').innerText = `Indent Details (${filteredRows.length} items)`;
+
+            if(filteredRows.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-slate-500">No records found matching filters.</td></tr>';
+            } else {
+                filteredRows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
+                    const valFormatted = row.indentVal.toLocaleString('en-IN', {style: 'currency', currency: 'INR'});
+                    
+                    tr.innerHTML = `
+                        <td class="px-6 py-3 font-medium text-slate-600">${row.siNo || '-'}</td>
+                        <td class="px-6 py-3 text-slate-700 max-w-xs truncate" title="${row.description}">${row.description || '-'}</td>
+                        <td class="px-6 py-3 text-slate-600">
+                            <span class="block text-xs font-bold">${row.dept}</span>
+                            <span class="block text-xs text-slate-400">${row.function}</span>
+                        </td>
+                        <td class="px-6 py-3 text-slate-600">${row.costCentre || '-'}</td>
+                        <td class="px-6 py-3 text-slate-600">${row.user || '-'}</td>
+                        <td class="px-6 py-3 text-right font-medium text-slate-800">${valFormatted}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            const section = document.getElementById('detailSection');
+            section.classList.remove('hidden');
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ==================== MODIFIED SAVE ENTRY FUNCTION ====================
+        // Modified saveEntry to save to Google Sheets
+        async function saveEntry() {
+            if (!currentUser || !currentUser.canAddEntries) {
+                showNotification('You do not have permission to add entries', 'error');
+                return;
+            }
+
+            const form = document.getElementById('newEntryForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            // Get form values
+            const description = document.getElementById('description').value;
+            const user = document.getElementById('user').value;
+            const dept = document.getElementById('dept').value;
+            const func = document.getElementById('function').value;
+            const costCentre = document.getElementById('costCentre').value;
+            const mprValue = parseFloat(document.getElementById('mprValue').value) || 0;
+            const isPoReleased = document.getElementById('isPoReleased').checked;
+            const poValue = isPoReleased ? (parseFloat(document.getElementById('poValue').value) || 0) : 0;
+            const isMaterialReceived = document.getElementById('isMaterialReceived').checked;
+            const materialDate = isMaterialReceived ? document.getElementById('materialDate').value : '';
+            const remarks = document.getElementById('remarks').value;
+
+            // Check if user has permission to add to this department
+            if (currentUser.access !== 'all' && Array.isArray(currentUser.access) && !currentUser.access.includes(dept)) {
+                showNotification(`You do not have permission to add entries to ${dept} department`, 'error');
+                return;
+            }
+
+            // Generate a new entry
+            const newEntry = {
+                siNo: rawTrackerData.length + 1,
+                description: description,
+                user: user,
+                dept: dept,
+                function: func,
+                costCentre: costCentre,
+                indentVal: mprValue,
+                poVal: poValue,
+                matVal: isMaterialReceived ? poValue : 0,
+                isPoReleased: isPoReleased,
+                isMatReceived: isMaterialReceived,
+                materialDate: materialDate,
+                remarks: remarks,
+                timestamp: new Date().toISOString(),
+                addedBy: currentUser.username
+            };
+
+            // ==================== SAVE TO GOOGLE SHEETS BACKEND ====================
+            try {
+                showNotification('🔄 Saving to Google Sheets...', 'info');
+                
+                // 1. First save locally for immediate UI update
+                rawTrackerData.push(newEntry);
+                updateDropdownsFromNewEntry(newEntry);
+                updateStatsFromNewEntry(newEntry);
+                saveToLocalStorage();
+                
+                // 2. Send to backend API
+                const response = await fetch('/api/submit-entry', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(newEntry)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('✅ Saved to Google Sheets!', 'success');
+                    console.log('Backend success:', result);
+                } else {
+                    showNotification(`⚠️ Backend: ${result.error}`, 'warning');
+                    console.warn('Backend warning:', result);
+                }
+                
+            } catch (error) {
+                console.error('❌ API Error:', error);
+                showNotification('⚠️ Network error. Saved locally only.', 'warning');
+            }
+
+            // Close modal and reset form
+            document.getElementById('addEntryModal').classList.add('hidden');
+            form.reset();
+            document.getElementById('poValueSection').classList.add('hidden');
+            document.getElementById('materialDateSection').classList.add('hidden');
+            
+            // Update dashboard UI
+            filterDashboard();
+        }
+
+        // ==================== REST OF THE ORIGINAL CODE (UNCHANGED) ====================
+        
+        // Setup form event listeners
+        function setupFormListeners() {
+            const poCheckbox = document.getElementById('isPoReleased');
+            const materialCheckbox = document.getElementById('isMaterialReceived');
+            const poValueSection = document.getElementById('poValueSection');
+            const materialDateSection = document.getElementById('materialDateSection');
+            
+            poCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    poValueSection.classList.remove('hidden');
+                } else {
+                    poValueSection.classList.add('hidden');
+                    document.getElementById('poValue').value = '';
+                }
+            });
+            
+            materialCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    materialDateSection.classList.remove('hidden');
+                    // If material is received, PO must be released
+                    if (!poCheckbox.checked) {
+                        poCheckbox.checked = true;
+                        poValueSection.classList.remove('hidden');
+                    }
+                } else {
+                    materialDateSection.classList.add('hidden');
+                    document.getElementById('materialDate').value = '';
+                }
+            });
+        }
+
+        function updateDropdownsFromNewEntry(entry) {
+            // Update department dropdown (if user has access)
+            const deptSelect = document.getElementById('deptFilter');
+            if (entry.dept && !Array.from(deptSelect.options).some(opt => opt.value === entry.dept)) {
+                const option = document.createElement('option');
+                option.value = entry.dept;
+                option.text = entry.dept;
+                deptSelect.appendChild(option);
+            }
+
+            // Update function dropdown
+            const funcSelect = document.getElementById('funcFilter');
+            if (entry.function && !Array.from(funcSelect.options).some(opt => opt.value === entry.function)) {
+                const option = document.createElement('option');
+                option.value = entry.function;
+                option.text = entry.function;
+                funcSelect.appendChild(option);
+            }
+
+            // Update cost centre dropdown
+            const ccSelect = document.getElementById('ccFilter');
+            if (entry.costCentre && !Array.from(ccSelect.options).some(opt => opt.value === entry.costCentre)) {
+                const option = document.createElement('option');
+                option.value = entry.costCentre;
+                option.text = entry.costCentre;
+                ccSelect.appendChild(option);
+            }
+
+            // Update user dropdown list (will be refreshed on next filterDashboard call)
+        }
+
+        function updateStatsFromNewEntry(entry) {
+            // Update dashboard stats
+            if (entry.indentVal > 0) {
+                dashboardData.stats.indent.count++;
+                dashboardData.stats.indent.val += entry.indentVal / 10000000;
+            }
+            if (entry.isPoReleased && entry.poVal > 0) {
+                dashboardData.stats.po.count++;
+                dashboardData.stats.po.val += entry.poVal / 10000000;
+            }
+            if (entry.isMatReceived && entry.matVal > 0) {
+                dashboardData.stats.material.count++;
+                dashboardData.stats.material.val += entry.matVal / 10000000;
+            }
+            
+            // Recalculate WIP
+            dashboardData.stats.wip.count = Math.max(0, dashboardData.stats.indent.count - dashboardData.stats.po.count);
+            dashboardData.stats.wip.val = Math.max(0, dashboardData.stats.indent.val - dashboardData.stats.po.val);
+            
+            updateKPIs();
+        }
+
+        // --- LOCAL STORAGE FUNCTIONS ---
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('capexEntries', JSON.stringify(rawTrackerData));
+            } catch (e) {
+                console.error('Error saving to localStorage:', e);
+            }
+        }
+
+        function loadSavedEntries() {
+            try {
+                const saved = localStorage.getItem('capexEntries');
+                if (saved) {
+                    const savedEntries = JSON.parse(saved);
+                    if (savedEntries.length > 0) {
+                        // Add saved entries to rawTrackerData
+                        savedEntries.forEach(entry => {
+                            rawTrackerData.push(entry);
+                        });
+                        
+                        // Recalculate stats from all data
+                        recalculateAllStats();
+                        
+                        // Update dropdowns
+                        updateAllDropdowns();
+                        
+                        // Update dashboard
+                        filterDashboard();
+                        
+                        console.log(`Loaded ${savedEntries.length} saved entries`);
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+            }
+        }
+
+        function recalculateAllStats() {
+            // Reset stats
+            dashboardData.stats.indent = { val: 0, count: 0 };
+            dashboardData.stats.po = { val: 0, count: 0 };
+            dashboardData.stats.material = { val: 0, count: 0 };
+            
+            // Recalculate from all data
+            rawTrackerData.forEach(row => {
+                if (row.indentVal > 0) {
+                    dashboardData.stats.indent.count++;
+                    dashboardData.stats.indent.val += row.indentVal / 10000000;
+                }
+                if (row.isPoReleased && row.poVal > 0) {
+                    dashboardData.stats.po.count++;
+                    dashboardData.stats.po.val += row.poVal / 10000000;
+                }
+                if (row.isMatReceived && row.matVal > 0) {
+                    dashboardData.stats.material.count++;
+                    dashboardData.stats.material.val += row.matVal / 10000000;
+                }
+            });
+            
+            // Calculate WIP
+            dashboardData.stats.wip.count = Math.max(0, dashboardData.stats.indent.count - dashboardData.stats.po.count);
+            dashboardData.stats.wip.val = Math.max(0, dashboardData.stats.indent.val - dashboardData.stats.po.val);
+        }
+
+        function updateAllDropdowns() {
+            const uniqueDepts = new Set();
+            const uniqueFuncs = new Set();
+            const uniqueCCs = new Set();
+            const uniqueUsers = new Set();
+
+            rawTrackerData.forEach(row => {
+                if (row.dept) uniqueDepts.add(row.dept);
+                if (row.function) uniqueFuncs.add(row.function);
+                if (row.costCentre) uniqueCCs.add(row.costCentre);
+                if (row.user) uniqueUsers.add(row.user);
+            });
+
+            // Update dropdowns with unique values
+            updateSelectOptions('deptFilter', uniqueDepts, 'All', "Departments");
+            updateSelectOptions('funcFilter', uniqueFuncs, 'All', "Functions");
+            updateSelectOptions('ccFilter', uniqueCCs, 'All', "Cost Centres");
+            updateUserDropdownList(uniqueUsers);
+        }
+
+        function updateSelectOptions(id, validSet, currentVal, label) {
+            const select = document.getElementById(id);
+            const sortedValues = Array.from(validSet).filter(v => v).sort();
+            
+            select.innerHTML = `<option value="All">All ${label}</option>`;
+            
+            sortedValues.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.innerText = val;
+                select.appendChild(option);
+            });
+
+            if (validSet.has(currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = 'All';
+            }
+        }
+
+        function updateUserDropdownList(validSet) {
+            const listContainer = document.getElementById('userDropdownList');
+            listContainer.innerHTML = ''; // Clear
+
+            const allDiv = document.createElement('div');
+            allDiv.className = 'px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50';
+            allDiv.innerText = 'All Users (Clear)';
+            allDiv.onclick = function() {
+                selectUser('');
+            };
+            listContainer.appendChild(allDiv);
+
+            const sortedValues = Array.from(validSet).filter(v => v).sort();
+            
+            if (sortedValues.length === 0) {
+                const noRes = document.createElement('div');
+                noRes.className = 'px-4 py-2 text-sm text-slate-400 italic';
+                noRes.innerText = 'No matching users';
+                listContainer.appendChild(noRes);
+            }
+
+            sortedValues.forEach(val => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm text-slate-700';
+                div.innerText = val;
+                div.onclick = function() {
+                    selectUser(val);
+                };
+                listContainer.appendChild(div);
+            });
+        }
+
+        function selectUser(val) {
+            const input = document.getElementById('userSearchInput');
+            input.value = val;
+            document.getElementById('userDropdownList').classList.add('hidden');
+            filterDashboard();
+        }
+
+        function toggleUserDropdown(show = null) {
+            const list = document.getElementById('userDropdownList');
+            if (show === true) {
+                list.classList.remove('hidden');
+            } else if (show === false) {
+                list.classList.add('hidden');
+            } else {
+                list.classList.toggle('hidden');
+            }
+        }
+
+        function setupUserDropdownEvents() {
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('userFilterContainer');
+                if (!container.contains(e.target)) {
+                    toggleUserDropdown(false);
+                }
+            });
+        }
+
+        function updateKPIs() {
+            document.getElementById('kpi-indent-val').innerText = `₹${dashboardData.stats.indent.val.toFixed(2)} Cr`;
+            document.getElementById('kpi-indent-count').innerText = dashboardData.stats.indent.count;
+
+            document.getElementById('kpi-po-val').innerText = `₹${dashboardData.stats.po.val.toFixed(2)} Cr`;
+            document.getElementById('kpi-po-count').innerText = dashboardData.stats.po.count;
+
+            document.getElementById('kpi-mat-val').innerText = `₹${dashboardData.stats.material.val.toFixed(2)} Cr`;
+            document.getElementById('kpi-mat-count').innerText = dashboardData.stats.material.count;
+
+            document.getElementById('kpi-wip-val').innerText = `₹${dashboardData.stats.wip.val.toFixed(2)} Cr`;
+            document.getElementById('kpi-wip-count').innerText = dashboardData.stats.wip.count;
+        }
+
+        function renderTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChartInst) trendChartInst.destroy();
+            trendChartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dashboardData.trends.labels,
+                    datasets: [
+                        { label: 'MPR Raised', data: dashboardData.trends.mpr, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.4 },
+                        { label: 'PO Released', data: dashboardData.trends.po, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 },
+                        { label: 'Bill Processed', data: dashboardData.trends.bill, borderColor: '#f59e0b', borderDash: [5, 5], fill: false, tension: 0.4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Value in Crores (₹)' } }, x: { grid: { display: false } } } }
+            });
+        }
+
+        function renderDeptChart() {
+            const ctx = document.getElementById('deptChart').getContext('2d');
+            if (deptChartInst) deptChartInst.destroy();
+            const sortedDepts = [...dashboardData.departments].sort((a, b) => b.budget - a.budget).slice(0, 5);
+            deptChartInst = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: sortedDepts.map(d => d.name),
+                    datasets: [{ data: sortedDepts.map(d => d.utilized), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444'], borderWidth: 0 }]
+                },
+                options: { responsive: true, cutout: '70%', plugins: { legend: { display: false } } }
+            });
+            const legendContainer = document.getElementById('deptLegend');
+            legendContainer.innerHTML = '';
+            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444'];
+            sortedDepts.forEach((d, i) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between text-sm';
+                item.innerHTML = `<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background-color: ${colors[i]}"></span><span class="text-slate-600">${d.name}</span></div><span class="font-medium text-slate-800">₹${d.utilized.toFixed(2)} Cr</span>`;
+                legendContainer.appendChild(item);
+            });
+        }
+
+        function renderDeptTable() {
+            const tbody = document.getElementById('deptTableBody');
+            tbody.innerHTML = '';
+            dashboardData.departments.forEach(dept => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                let statusBadge = '';
+                const utilPct = (dept.utilized / dept.budget);
+                if (utilPct > 1.0) statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">Over Budget</span>';
+                else if (utilPct > 0.8) statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">High</span>';
+                else statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">On Track</span>';
+                tr.innerHTML = `<td class="px-6 py-4 font-medium text-slate-800">${dept.name}</td><td class="px-6 py-4 text-right text-slate-600">${dept.budget.toFixed(2)}</td><td class="px-6 py-4 text-right text-slate-800 font-semibold">${dept.utilized.toFixed(2)}</td><td class="px-6 py-4 text-right text-slate-600">${dept.balance.toFixed(2)}</td><td class="px-6 py-4 text-center">${statusBadge}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderProjectList() {
+            const container = document.getElementById('projectList');
+            container.innerHTML = '';
+            dashboardData.projects.forEach(proj => {
+                let statusColor = proj.status === 'Completed' ? 'text-emerald-600' : 'text-blue-600';
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100';
+                div.innerHTML = `<div><p class="font-semibold text-slate-800 text-sm">${proj.name}</p><p class="text-xs text-slate-500">Capex Project</p></div><div class="text-right"><p class="font-bold text-slate-700 text-sm">₹${proj.used} Cr</p><span class="text-xs font-bold ${statusColor}">${proj.status}</span></div>`;
+                container.appendChild(div);
+            });
+        }
+
+        function parseCurrency(str) {
+            if (!str) return 0;
+            if (typeof str === 'number') return str;
+            let clean = str.toString().replace(/,/g, '').replace(/\s/g, '').replace(/"/g, '');
+            let val = parseFloat(clean);
+            return isNaN(val) ? 0 : val;
+        }
+
+        function populateSelect(id, values) {
+            const select = document.getElementById(id);
+            // Keep first option (All ...)
+            const firstOption = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            
+            Array.from(values).sort().forEach(val => {
+                let option = document.createElement('option');
+                option.value = val;
+                option.innerText = val;
+                select.appendChild(option);
+            });
+        }
+
+        // Helper function to read Excel file
+        function readExcelFile(file, sheetName = 0) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[sheetName]];
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function processFiles() {
+            if (!currentUser || !currentUser.canUploadExcel) {
+                showNotification('You do not have permission to upload Excel files', 'error');
+                return;
+            }
+
+            const fileISCM = document.getElementById('fileISCM').files[0];
+            const filePivot = document.getElementById('filePivot').files[0];
+            const fileSummary = document.getElementById('fileSummary').files[0];
+            
+            let promises = [];
+
+            if (fileISCM) {
+                promises.push(new Promise((resolve) => {
+                    readExcelFile(fileISCM, 0).then(dataRows => {
+                        // 1. Detect Headers
+                        let headerRowIndex = -1;
+                        
+                        for (let i = 0; i < Math.min(20, dataRows.length); i++) {
+                            let rowStr = JSON.stringify(dataRows[i]).toLowerCase();
+                            if (rowStr.includes("mpr value") || rowStr.includes("si.no")) {
+                                headerRowIndex = i;
+                                break;
+                            }
+                        }
+                        if (headerRowIndex === -1) headerRowIndex = 0;
+
+                        let headers = dataRows[headerRowIndex].map(h => h ? h.toString().trim() : "");
+                        
+                        // 2. Identify Columns
+                        let idxMPR = headers.findIndex(h => h.toLowerCase().includes("mpr value"));
+                        let idxPOVal = headers.findIndex(h => h.toLowerCase().includes("po_value_basic"));
+                        let idxMatDate = headers.findIndex(h => h.toLowerCase().includes("mat_rcpt_date"));
+                        let idxSiNo = headers.findIndex(h => h.toLowerCase().includes("si.no") || h.toLowerCase().includes("sl.no"));
+                        let idxDesc = headers.findIndex(h => h.toLowerCase().includes("description"));
+                        let idxUser = headers.findIndex(h => h.toLowerCase().includes("user"));
+                        let idxCC = headers.findIndex(h => h.toLowerCase().includes("cost_centre") || h.toLowerCase().includes("cost center"));
+                        let idxFunc = headers.findIndex(h => h.toLowerCase().includes("function"));
+                        
+                        // Find Department Column ("dept" or fallback "cite")
+                        let idxDept = headers.findIndex(h => h.toLowerCase() === "dept");
+                        if (idxDept === -1) idxDept = headers.findIndex(h => h.toLowerCase().includes("dept"));
+                        if (idxDept === -1) idxDept = headers.findIndex(h => h.toLowerCase().includes("cite")); // Fallback
+
+                        // 3. Process Rows
+                        rawTrackerData = []; 
+                        let uniqueDepts = new Set();
+                        let uniqueFuncs = new Set();
+                        let uniqueCCs = new Set();
+                        let uniqueUsers = new Set();
+
+                        for (let i = headerRowIndex + 1; i < dataRows.length; i++) {
+                            let row = dataRows[i];
+                            if (!row || row.length < 2) continue; 
+
+                            // Extract Department
+                            let deptName = "Unassigned";
+                            if (idxDept !== -1 && row[idxDept]) {
+                                deptName = row[idxDept].toString().trim();
+                            }
+                            if (deptName !== "" && deptName !== "Unassigned") uniqueDepts.add(deptName);
+
+                            // Extract Function
+                            let funcName = "";
+                            if (idxFunc !== -1 && row[idxFunc]) {
+                                funcName = row[idxFunc].toString().trim();
+                            }
+                            if (funcName !== "") uniqueFuncs.add(funcName);
+
+                            // Extract Cost Centre
+                            let ccName = "";
+                            if (idxCC !== -1 && row[idxCC]) {
+                                ccName = row[idxCC].toString().trim();
+                            }
+                            if (ccName !== "") uniqueCCs.add(ccName);
+
+                            // Extract User
+                            let userName = "";
+                            if (idxUser !== -1 && row[idxUser]) {
+                                userName = row[idxUser].toString().trim();
+                            }
+                            if (userName !== "") uniqueUsers.add(userName);
+
+                            // Metrics
+                            let mprVal = (idxMPR !== -1) ? parseCurrency(row[idxMPR]) : 0;
+                            let poVal = (idxPOVal !== -1) ? parseCurrency(row[idxPOVal]) : 0;
+                            let matDate = (idxMatDate !== -1) ? row[idxMatDate] : "";
+                            
+                            let isPoReleased = (poVal > 0);
+                            let isMatReceived = (matDate && matDate.toString().trim() !== "" && poVal > 0);
+                            let matVal = isMatReceived ? poVal : 0;
+
+                            rawTrackerData.push({
+                                siNo: (idxSiNo !== -1) ? row[idxSiNo] : '',
+                                description: (idxDesc !== -1) ? row[idxDesc] : '',
+                                user: userName,
+                                dept: deptName,
+                                function: funcName,
+                                costCentre: ccName,
+                                indentVal: mprVal,
+                                poVal: isPoReleased ? poVal : 0,
+                                matVal: matVal,
+                                isPoReleased: isPoReleased,
+                                isMatReceived: isMatReceived
+                            });
+                        }
+
+                        // 4. Populate Dropdowns - Initial
+                        populateSelect('deptFilter', uniqueDepts);
+                        populateSelect('funcFilter', uniqueFuncs);
+                        populateSelect('ccFilter', uniqueCCs);
+                        updateUserDropdownList(uniqueUsers); // NEW
+
+                        filterDashboard();
+                        resolve();
+                    }).catch(error => {
+                        console.error("Error reading ISCM file:", error);
+                        showNotification("Error reading ISCM Excel file. Please check the file format.", "error");
+                        resolve();
+                    });
+                }));
+            }
+
+            if (filePivot) {
+                promises.push(new Promise((resolve) => {
+                    readExcelFile(filePivot, 0).then(dataRows => {
+                        // Convert array of arrays to array of objects
+                        const headers = dataRows[0];
+                        const newDepts = [];
+                        
+                        for (let i = 1; i < dataRows.length; i++) {
+                            const row = dataRows[i];
+                            if (row.length >= 3) {
+                                const deptName = row[headers.indexOf('DEPT')] || row[0];
+                                const budget = parseFloat(row[headers.indexOf('Budget')] || row[1]) || 0;
+                                const utilized = parseFloat(row[headers.indexOf('Utilized')] || row[2]) || 0;
+                                const balance = parseFloat(row[headers.indexOf('Balance')] || (budget - utilized)) || 0;
+                                
+                                if (deptName) {
+                                    newDepts.push({ 
+                                        name: deptName.toString().trim(), 
+                                        budget: budget, 
+                                        utilized: utilized, 
+                                        balance: balance 
+                                    });
+                                }
+                            }
+                        }
+                        
+                        if (newDepts.length > 0) dashboardData.departments = newDepts;
+                        resolve();
+                    }).catch(error => {
+                        console.error("Error reading Pivot file:", error);
+                        showNotification("Error reading Pivot Excel file. Please check the file format.", "error");
+                        resolve();
+                    });
+                }));
+            }
+
+            if (fileSummary) {
+                promises.push(new Promise((resolve) => {
+                    // Just read the file to process if needed
+                    readExcelFile(fileSummary, 0).then(() => {
+                        resolve();
+                    }).catch(error => {
+                        console.error("Error reading Summary file:", error);
+                        resolve();
+                    });
+                }));
+            }
+
+            Promise.all(promises).then(() => {
+                updateKPIs();
+                renderTrendChart();
+                renderDeptChart();
+                renderDeptTable();
+                document.getElementById('uploadModal').classList.add('hidden');
+                showNotification("Dashboard updated successfully with all filters!", "success");
+            });
+        }
+
+        // ==================== INITIALIZATION ====================
+        
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Setup login form submission
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        
+        // Auto-login for demo (optional - remove in production)
+        // Uncomment below line for automatic admin login on page load
+        // setTimeout(() => { document.getElementById('username').value = 'admin'; document.getElementById('password').value = '1234'; }, 100);
+    </script>
+</body>
+</html>

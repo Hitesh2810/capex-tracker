@@ -1,0 +1,16 @@
+{
+  "name": "capex-tracker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Capex Tracker Dashboard with Google Sheets",
+  "scripts": {
+    "dev": "echo \"Local dev not needed for Vercel\"",
+    "start": "echo \"Not used on Vercel\""
+  },
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^2.0.0"
+  }
+}
